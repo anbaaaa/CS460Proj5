@@ -51,8 +51,9 @@ class BayesNet:
             self.totalWordsCounts[self.classLabels[i]] = 0
             for line in file:
                 parsedLine = line.rstrip().split(' ')
-                #parsedLine.pop()
-                for token in parsedLine:
+                for tokenIndex in range(len(parsedLine)-1):
+                    token = (parsedLine[tokenIndex], parsedLine[tokenIndex+1])
+                    #print token
                     if token not in self.wordDict[self.classLabels[i]]:
                         self.wordDict[self.classLabels[i]][token] = 0
                     self.wordDict[self.classLabels[i]][token] += 1
@@ -77,19 +78,19 @@ class BayesNet:
         total = 0
         for line in file:
             parsedLine = line.rstrip().split(' ')
-            #parsedLine.pop()
             prediction = ''
             maxProbability = -1000000000000
             for i in range(self.NUM_CLASSES):
                 probability = 0.0
-                for token in parsedLine:
+                for tokenIndex in range(len(parsedLine)-1):
+                    token = (parsedLine[tokenIndex], parsedLine[tokenIndex+1])
                     if token in self.wordDict[self.classLabels[i]]:
                         probability += math.log(self.wordDict[self.classLabels[i]][token], 2)
                         #print classLabel, probability
                     elif self.inOtherDict(token, i):
                         probability += math.log(( 1.0 / (self.totalWordsCounts[self.classLabels[i]] + len(parsedLine)) ), 2)
                     #otherwise, ignore it.
-
+                 
                 probability += math.log((float(self.totalWordsCounts[self.classLabels[i]])/self.totalWords), 2)
                 #print probability, self.classLabels[i]
                 if probability > maxProbability:
