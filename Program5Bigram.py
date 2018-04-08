@@ -11,6 +11,7 @@ import sys
 import copy
 import random
 import math
+import heapq
 
 #this class is only designed to work for the data in this project.
 class BayesNet:
@@ -20,6 +21,7 @@ class BayesNet:
     classLabels = ['hamlet', 'juliet', 'macbeth', 'romeo']
     wordDict = dict()
     totalWordsCounts = dict()
+    wordFrequencyDict = dict()
     NUM_CLASSES = 4
     totalWords = 0
     totalCorrect = 0
@@ -48,6 +50,7 @@ class BayesNet:
             lineIndex = 0
             file = fileList[i]
             self.wordDict[self.classLabels[i]] = dict()
+            self.wordFrequencyDict[self.classLabels[i]] = dict()
             self.totalWordsCounts[self.classLabels[i]] = 0
             for line in file:
                 parsedLine = line.rstrip().split(' ')
@@ -56,7 +59,9 @@ class BayesNet:
                     #print token
                     if token not in self.wordDict[self.classLabels[i]]:
                         self.wordDict[self.classLabels[i]][token] = 0
+                        self.wordFrequencyDict[self.classLabels[i]][token] = 0
                     self.wordDict[self.classLabels[i]][token] += 1
+                    self.wordFrequencyDict[self.classLabels[i]][token] += 1
                     self.totalWordsCounts[self.classLabels[i]] += 1
                     self.totalWords+=1
 
@@ -109,7 +114,58 @@ class BayesNet:
         for i in range(self.NUM_CLASSES):
             if i != currentIndex and token in self.wordDict[self.classLabels[i]]:
                 return True
+
+    def predictiveKeyboard(self, classLabel, startingWord):
+        bestOptions = list()
+        sortedDict = None
+        #if they don't provide a starting word, give them the 5 best words in general.
+        if startingWord == None:
+            dictCopy = copy.deepcopy(self.wordDict[classLabel])
+            while len(bestOptions) < 5:
+                #sortedDict = sorted(self.wordDict[classLabel].values(), reverse=True)
+                bestKey = max(dictCopy, key=dictCopy.get)
+                if bestKey[1] != '<eol>' and bestKey[0] not in bestOptions:
+                    bestOptions.append(bestKey[0])
+                del dictCopy[bestKey]
+        #otherwise, find the next possible words and build out a list of the best 5.
+        else:
+            #get a dict of possible words, and keep a tally of the total number of instances to calculate the probability of each.
+            possibleWords = dict()
+            totalPossibilityCount = 0
+            for key in self.wordDict[classLabel]:
+                if key[0] == startingWord:
+                    possibleWords[key] = 0.0
+                    totalPossibilityCount+=self.wordFrequencyDict[classLabel][key]
+
+            #now that we have the total number of possibilities, we can figure out the probability of selecting each.
+            for key in possibleWords:
+                possibleWords[key] = float(self.wordFrequencyDict[classLabel][key])/totalPossibilityCount
+
+            #lastly, take the top 5 best possibilities.
+            dictCopy = copy.deepcopy(possibleWords)
+            bestOptions = list()
+            while len(bestOptions) < 5 and len(dictCopy) > 0:
+                bestKey = max(dictCopy, key=dictCopy.get)
+                bestOptions.append(bestKey[1])
+                del dictCopy[bestKey]
+
+            #if we don't have 5 possibilities, fill in the rest with the best possibilities from the base dictionary.
+            basePossibilities = self.predictiveKeyboard(classLabel, None)
+            index = 0
+            while len(bestOptions) < 5:
+                if basePossibilities[index] not in bestOptions:
+                    bestOptions.append(basePossibilities[index])
+                index+=1
+        
+        return bestOptions
+
     
+def printOptions(possibilities):
+    print 'Possibilties:'
+    for i in range(len(possibilities)):
+        print i, '-', possibilities[i]
+
+
 
 def main():
     if (len(sys.argv) != 9):
@@ -132,5 +188,24 @@ def main():
     bayesNet.test(macbethTestFilename, 'macbeth')
     bayesNet.test(romeoTestFilename, 'romeo')
     print 'Overall accuracy:', bayesNet.totalCorrect, 'out of', bayesNet.testWords, (float(bayesNet.totalCorrect)/bayesNet.testWords)
+    for character in bayesNet.classLabels:
+        print 'Creating a monologue for', character
+        monologue = list()
+        currentWord = None
+        while currentWord != '<eol>':
+            possibilities = bayesNet.predictiveKeyboard(character, currentWord)
+            printOptions(possibilities)
+            currentWord = possibilities[int(input('Enter the index of the next word: '))]
+            monologue.append(currentWord)
+        print 'Your final monologue for', character, ':'
+        for i in range(len(monologue)):
+            print monologue[i],
+        print '\n----------\n'
+
+
+
+
+    bayesNet.predictiveKeyboard('hamlet', None)
+    bayesNet.predictiveKeyboard('hamlet', 'it')
 
 main()
