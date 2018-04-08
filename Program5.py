@@ -1,15 +1,10 @@
 #Tristan Basil
-#Assignment: Project 4 - cS460G Machine Learning, Dr. Harrison
+#Assignment: Project 5 - cS460G Machine Learning, Dr. Harrison
 
-#https://docs.scipy.org/doc/numpy-1.14.0/reference/generated/numpy.matrix.html -> for using a matrix in general
-#https://stackoverflow.com/questions/4455076/how-to-access-the-ith-column-of-a-numpy-multidimensional-array -> for getting a vector from a matrix
-#https://stackoverflow.com/questions/6088077/how-to-get-a-random-number-between-a-float-range -> for generating random weights
+#https://stackoverflow.com/questions/268272/getting-key-with-maximum-value-in-dictionary --> for getting max key of a dictionary
 
-
-import numpy as np
 import sys
 import copy
-import random
 import math
 
 #this class is only designed to work for the data in this project.

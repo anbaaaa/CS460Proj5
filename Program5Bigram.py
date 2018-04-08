@@ -1,17 +1,13 @@
 #Tristan Basil
-#Assignment: Project 4 - cS460G Machine Learning, Dr. Harrison
+#Assignment: Project 5 - cS460G Machine Learning, Dr. Harrison
 
-#https://docs.scipy.org/doc/numpy-1.14.0/reference/generated/numpy.matrix.html -> for using a matrix in general
-#https://stackoverflow.com/questions/4455076/how-to-access-the-ith-column-of-a-numpy-multidimensional-array -> for getting a vector from a matrix
-#https://stackoverflow.com/questions/6088077/how-to-get-a-random-number-between-a-float-range -> for generating random weights
+#https://stackoverflow.com/questions/268272/getting-key-with-maximum-value-in-dictionary --> for getting max key of a dictionary
 
 
-import numpy as np
+
 import sys
 import copy
-import random
 import math
-import heapq
 
 #this class is only designed to work for the data in this project.
 class BayesNet:
@@ -120,13 +116,20 @@ class BayesNet:
         sortedDict = None
         #if they don't provide a starting word, give them the 5 best words in general.
         if startingWord == None:
-            dictCopy = copy.deepcopy(self.wordDict[classLabel])
+            #consolidate these probabilities - right now they're all split along bigrams.
+            dictCopy = dict()
+            for key in self.wordDict[classLabel]:
+                if key[0] not in dictCopy:
+                    dictCopy[key[0]] = 0
+                dictCopy[key[0]]+=self.wordFrequencyDict[classLabel][key]
+
             while len(bestOptions) < 5:
                 #sortedDict = sorted(self.wordDict[classLabel].values(), reverse=True)
                 bestKey = max(dictCopy, key=dictCopy.get)
-                if bestKey[1] != '<eol>' and bestKey[0] not in bestOptions:
-                    bestOptions.append(bestKey[0])
+                if bestKey not in bestOptions:
+                    bestOptions.append(bestKey)
                 del dictCopy[bestKey]
+
         #otherwise, find the next possible words and build out a list of the best 5.
         else:
             #get a dict of possible words, and keep a tally of the total number of instances to calculate the probability of each.
@@ -134,12 +137,10 @@ class BayesNet:
             totalPossibilityCount = 0
             for key in self.wordDict[classLabel]:
                 if key[0] == startingWord:
-                    possibleWords[key] = 0.0
+                    if key not in possibleWords:
+                        possibleWords[key] = 0.0
+                    possibleWords[key]+=self.wordFrequencyDict[classLabel][key]
                     totalPossibilityCount+=self.wordFrequencyDict[classLabel][key]
-
-            #now that we have the total number of possibilities, we can figure out the probability of selecting each.
-            for key in possibleWords:
-                possibleWords[key] = float(self.wordFrequencyDict[classLabel][key])/totalPossibilityCount
 
             #lastly, take the top 5 best possibilities.
             dictCopy = copy.deepcopy(possibleWords)
@@ -201,11 +202,5 @@ def main():
         for i in range(len(monologue)):
             print monologue[i],
         print '\n----------\n'
-
-
-
-
-    bayesNet.predictiveKeyboard('hamlet', None)
-    bayesNet.predictiveKeyboard('hamlet', 'it')
 
 main()
