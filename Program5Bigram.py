@@ -3,8 +3,6 @@
 
 #https://stackoverflow.com/questions/268272/getting-key-with-maximum-value-in-dictionary --> for getting max key of a dictionary
 
-
-
 import sys
 import copy
 import math
@@ -40,8 +38,7 @@ class BayesNet:
             print('file not found')
             exit(-1)
 
-        #for each line in each file, parse the inputs and class labels into parallel lists.
-        
+        #for each line in each file, parse the inputs.
         for i in range(self.NUM_CLASSES):
             lineIndex = 0
             file = fileList[i]
@@ -52,7 +49,7 @@ class BayesNet:
                 parsedLine = line.rstrip().split(' ')
                 for tokenIndex in range(len(parsedLine)-1):
                     token = (parsedLine[tokenIndex], parsedLine[tokenIndex+1])
-                    #print token
+                    #initialize the dictionary entry if it doesn't exist
                     if token not in self.wordDict[self.classLabels[i]]:
                         self.wordDict[self.classLabels[i]][token] = 0
                         self.wordFrequencyDict[self.classLabels[i]][token] = 0
@@ -84,16 +81,17 @@ class BayesNet:
             for i in range(self.NUM_CLASSES):
                 probability = 0.0
                 for tokenIndex in range(len(parsedLine)-1):
+                    #make the bigram
                     token = (parsedLine[tokenIndex], parsedLine[tokenIndex+1])
                     if token in self.wordDict[self.classLabels[i]]:
                         probability += math.log(self.wordDict[self.classLabels[i]][token], 2)
-                        #print classLabel, probability
+                    #use a pseudocount if the word exists in a different dictionary.
                     elif self.inOtherDict(token, i):
                         probability += math.log(( 1.0 / (self.totalWordsCounts[self.classLabels[i]] + len(parsedLine)) ), 2)
                     #otherwise, ignore it.
-                 
+                
+                #add in the base probability.
                 probability += math.log((float(self.totalWordsCounts[self.classLabels[i]])/self.totalWords), 2)
-                #print probability, self.classLabels[i]
                 if probability > maxProbability:
                     maxProbability = probability
                     prediction = self.classLabels[i]
@@ -124,7 +122,6 @@ class BayesNet:
                 dictCopy[key[0]]+=self.wordFrequencyDict[classLabel][key]
 
             while len(bestOptions) < 5:
-                #sortedDict = sorted(self.wordDict[classLabel].values(), reverse=True)
                 bestKey = max(dictCopy, key=dictCopy.get)
                 if bestKey not in bestOptions:
                     bestOptions.append(bestKey)
@@ -147,7 +144,9 @@ class BayesNet:
             bestOptions = list()
             while len(bestOptions) < 5 and len(dictCopy) > 0:
                 bestKey = max(dictCopy, key=dictCopy.get)
-                bestOptions.append(bestKey[1])
+                #we'll give an end of line option at the end.
+                if bestKey[1] != '<eol>':
+                    bestOptions.append(bestKey[1])
                 del dictCopy[bestKey]
 
             #if we don't have 5 possibilities, fill in the rest with the best possibilities from the base dictionary.
@@ -157,7 +156,9 @@ class BayesNet:
                 if basePossibilities[index] not in bestOptions:
                     bestOptions.append(basePossibilities[index])
                 index+=1
-        
+            #give the end of line option.
+            bestOptions.append('<eol>')
+
         return bestOptions
 
     
@@ -192,15 +193,24 @@ def main():
     for character in bayesNet.classLabels:
         print 'Creating a monologue for', character
         monologue = list()
-        currentWord = None
-        while currentWord != '<eol>':
-            possibilities = bayesNet.predictiveKeyboard(character, currentWord)
-            printOptions(possibilities)
-            currentWord = possibilities[int(input('Enter the index of the next word: '))]
-            monologue.append(currentWord)
-        print 'Your final monologue for', character, ':'
+        for i in range(5):
+            line = list()
+            currentWord = None
+            while currentWord != '<eol>':
+                possibilities = bayesNet.predictiveKeyboard(character, currentWord)
+                printOptions(possibilities)
+                currentWord = possibilities[int(input('Enter the index of the next word: '))]
+                line.append(currentWord)
+            print 'Line', i, 'for', character, ':',
+            for j in range(len(line)):
+                print line[j],
+            print '\n----------\n'
+            monologue.append(line)
+        print 'Final monologue for', character, ':'
         for i in range(len(monologue)):
-            print monologue[i],
+            for j in range(len(monologue[i])):
+                print monologue[i][j],
+            print ''
         print '\n----------\n'
 
 main()
